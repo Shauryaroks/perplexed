@@ -18,6 +18,7 @@ import './styles.css'
 import reportWebVitals from './reportWebVitals.ts'
 
 import App from './App.tsx'
+import { ThemeProvider } from './contexts/theme-provider.tsx'
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -65,7 +66,9 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
-        <RouterProvider router={router} />
+        <ThemeProvider defaultTheme='dark'>
+          <RouterProvider router={router} />
+        </ThemeProvider>
       </TanStackQueryProvider.Provider>
     </StrictMode>,
   )

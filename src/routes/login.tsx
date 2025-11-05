@@ -6,6 +6,8 @@ import { fieldContext, formContext } from '../hooks/demo.form-context'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { LoginForm } from '@/components/login-form'
+import { Card } from '@/components/ui/card'
+import { ModeToggle } from '@/components/mode-toggle'
 
 const PASSWORD_MIN_SIZE = 6;
 const schema = z.object({
@@ -41,6 +43,9 @@ function Login() {
     },
   })
   return <div className="flex flex-col md:flex-row">
+    <div className="absolute top-5 right-5">
+      <ModeToggle />
+    </div>
     <div className="w-full md:w-1/2 p-4 h-screen flex flex-col justify-center items-center">
       <LoginForm
         className="w-full max-w-[20rem]"
@@ -67,8 +72,8 @@ function Login() {
         forgotPasswordLink='/forgot-password'
       />
     </div>
-    <div className="hidden md:block sm:w-1/2 h-screen flex flex-col justify-center p-4 bg-[#efefef]">
-    </div>
+    <Card className="hidden md:block sm:w-1/2 h-screen flex flex-col justify-center p-4 border-none bg-secondary rounded-none">
+    </Card>
   </div>
 }
 

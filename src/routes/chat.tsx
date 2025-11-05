@@ -23,9 +23,14 @@ import {
 } from '@/components/ui/shadcn-io/ai/reasoning';
 import { Source, Sources, SourcesContent, SourcesTrigger } from '@/components/ui/shadcn-io/ai/source';
 import { Button } from '@/components/ui/button';
-import { MicIcon, PaperclipIcon, RotateCcwIcon } from 'lucide-react';
+import { PaperclipIcon, RotateCcwIcon } from 'lucide-react';
 import { nanoid } from 'nanoid';
-import { type FormEventHandler, useCallback, useState } from 'react';
+import { type FormEventHandler, useCallback, useEffect, useState } from 'react';
+import { ModeToggle } from '@/components/mode-toggle';
+import { Card } from '@/components/ui/card';
+import { SelectionPopover } from '@/components/selection_popover';
+import z from 'zod';
+import { Input } from '@/components/ui/input';
 
 type ChatMessage = {
   id: string;
@@ -89,7 +94,6 @@ function Chat() {
   const [selectedModel, setSelectedModel] = useState(models[0].id);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
-  
 
   const simulateTyping = useCallback((messageId: string, content: string, reasoning?: string, sources?: Array<{ title: string; url: string }>) => {
     let currentIndex = 0;
@@ -108,7 +112,7 @@ function Chat() {
         return msg;
       }));
 
-      currentIndex += Math.random() > 0.1 ? 1 : 0; // Simulate variable typing speed
+      currentIndex += Math.random() > 0.1 ? 2 : 0; // Simulate variable typing speed
       
       if (currentIndex >= content.length) {
         clearInterval(typeInterval);
@@ -176,8 +180,32 @@ function Chat() {
     setStreamingMessageId(null);
   }, []);
 
+  function saveScratchPad(d: string[]) {
+    localStorage.setItem("scratchpad-length", d.length.toString());
+    for (let i = 0; i < d.length; i++) {
+      localStorage.setItem(`scratchpad-${i}`, d[i]);
+    }
+  }
+
+  function loadScratchPad(): string[] {
+    const output = [];
+    const length = parseInt(localStorage.getItem("scratchpad-length") ?? '0');
+    for (let i = 0; i < length; i++) {
+      const item = localStorage.getItem(`scratchpad-${i}`)
+      if (item) output.push(item);
+    }
+    return output;
+  }
+
+  const [data, setData] = useState<string[]>([]);
+  useEffect(() => {
+    setData(loadScratchPad());
+  }, []);
+
+  const [passPhraseForm, setPassPhrase] = useState("");
+
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden rounded-xl border bg-background shadow-sm">
+    <div className="flex h-screen w-full flex-col overflow-hidden rounded-xl border bg-background shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-3">
         <div className="flex items-center gap-3">
@@ -190,65 +218,99 @@ function Chat() {
             {models.find(m => m.id === selectedModel)?.name}
           </span>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={handleReset}
-          className="h-8 px-2"
-        >
-          <RotateCcwIcon className="size-4" />
-          <span className="ml-1">Reset</span>
-        </Button>
+        <form className="w-1/2 flex gap-2" onSubmit={(e) => {
+          e.preventDefault();
+          alert("Correct passphrase, preceed to next level\n" + passPhraseForm)
+        }}>
+          <Input 
+            value={passPhraseForm}
+            onChange={(e) => setPassPhrase(e.target.value.toLowerCase())}
+            placeholder='Enter passphrase to unlock next level'
+            required
+          />
+          <Button type="submit">Unlock</Button>
+        </form>
+        <div className="flex gap-4">
+          <ModeToggle />
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleReset}
+            className="h-8 px-2"
+          >
+            <RotateCcwIcon className="size-4" />
+            <span className="ml-1">Reset</span>
+          </Button>
+        </div>
       </div>
 
       {/* Conversation Area */}
       <Conversation className="flex-1">
-        <ConversationContent className="space-y-4">
-          {messages.map((message) => (
-            <div key={message.id} className="space-y-3">
-              <Message from={message.role}>
-                <MessageContent>
-                  {message.isStreaming && message.content === '' ? (
-                    <div className="flex items-center gap-2">
-                      <Loader size={14} />
-                      <span className="text-muted-foreground text-sm">Thinking...</span>
-                    </div>
-                  ) : (
-                    message.content
-                  )}
-                </MessageContent>
-                <MessageAvatar 
-                  src={message.role === 'user' ? 'https://github.com/dovazencot.png' : 'https://github.com/vercel.png'} 
-                  name={message.role === 'user' ? 'User' : 'AI'} 
-                />
-              </Message>
+        <SelectionPopover data={data} addData={(n) => {
+          const x = [...data, n];
+          setData(x);
+          saveScratchPad(x);
+        }} />
+        <div className="flex h-full">
+          <ConversationContent className="space-y-4">
+            {messages.map((message) => (
+              <div key={message.id} className="space-y-3">
+                <Message from={message.role}>
+                  <MessageContent>
+                    {message.isStreaming && message.content === '' ? (
+                      <div className="flex items-center gap-2">
+                        <Loader size={14} />
+                        <span className="text-muted-foreground text-sm">Thinking...</span>
+                      </div>
+                    ) : (
+                      message.content
+                    )}
+                  </MessageContent>
+                  <MessageAvatar 
+                    src={message.role === 'user' ? 'https://github.com/dovazencot.png' : 'https://github.com/vercel.png'} 
+                    name={message.role === 'user' ? 'User' : 'AI'} 
+                  />
+                </Message>
 
-              {/* Reasoning */}
-              {message.reasoning && (
-                <div className="ml-10">
-                  <Reasoning isStreaming={message.isStreaming} defaultOpen={false}>
-                    <ReasoningTrigger />
-                    <ReasoningContent>{message.reasoning}</ReasoningContent>
-                  </Reasoning>
-                </div>
-              )}
+                {/* Reasoning */}
+                {message.reasoning && (
+                  <div className="ml-10">
+                    <Reasoning isStreaming={message.isStreaming} defaultOpen={false}>
+                      <ReasoningTrigger />
+                      <ReasoningContent>{message.reasoning}</ReasoningContent>
+                    </Reasoning>
+                  </div>
+                )}
 
-              {/* Sources */}
-              {message.sources && message.sources.length > 0 && (
-                <div className="ml-10">
-                  <Sources>
-                    <SourcesTrigger count={message.sources.length} />
-                    <SourcesContent>
-                      {message.sources.map((source, index) => (
-                        <Source key={index} href={source.url} title={source.title} />
-                      ))}
-                    </SourcesContent>
-                  </Sources>
-                </div>
-              )}
-            </div>
-          ))}
-        </ConversationContent>
+                {/* Sources */}
+                {message.sources && message.sources.length > 0 && (
+                  <div className="ml-10">
+                    <Sources>
+                      <SourcesTrigger count={message.sources.length} />
+                      <SourcesContent>
+                        {message.sources.map((source, index) => (
+                          <Source key={index} href={source.url} title={source.title} />
+                        ))}
+                      </SourcesContent>
+                    </Sources>
+                  </div>
+                )}
+              </div>
+            ))}
+          </ConversationContent>
+          <Card className="sm:w-1/2 flex flex-col items-center p-4 border-none bg-secondary rounded-none w-full">
+            <div className="text-5xl">Scratch Pad</div>
+            {data.map((item, i) => <div className="flex flex-col gap-4 bg-background p-4 w-full">
+              <div>{item}</div>
+              <div className="flex justify-between"><div></div><button onClick={() => {
+                const n = data.slice();
+                n.splice(i, 1);
+                setData(n);
+                saveScratchPad(n);
+              }} className="bg-muted hover:bg-muted/50 p-4 pt-2 pb-2">Delete</button></div>
+            </div>)}
+          </Card>
+        </div>
         <ConversationScrollButton />
       </Conversation>
 
