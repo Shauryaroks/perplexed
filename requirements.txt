@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-dotenv
+pydantic
+pydantic-settings
+pinecone-client
+google-generativeai
+sentence-transformers
+numpy
+scikit-learn
+python-multipart
+requests
