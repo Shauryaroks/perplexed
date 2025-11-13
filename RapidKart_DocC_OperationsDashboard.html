@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head><meta charset='utf-8'><title>RapidKart - Document C</title><style>
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; padding:0; background:#f4f4f6; }
+.page { width: 210mm; min-height: 297mm; margin:20px auto; background: #ffffff; box-shadow: 0 0 8px rgba(0,0,0,0.08); position:relative; padding:28mm 18mm 18mm 18mm; }
+.header { background:#2b2b2f; color:#fff; padding:12px 18px; display:flex; align-items:center; border-radius:6px 6px 0 0; }
+.logo { font-weight:700; font-size:20px; color:#fff; margin-right:12px; }
+.h-title { margin-left:8px; font-size:14px; color:#fff; }
+.watermark { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-30deg); font-size:48px; color:rgba(0,0,0,0.06); font-weight:700; pointer-events:none; white-space:nowrap; }
+.ribbon { position:absolute; right:-40px; top:40px; transform:rotate(45deg); background:#d9534f; color:#fff; padding:6px 80px; font-weight:700; box-shadow:0 3px 6px rgba(0,0,0,0.2); }
+.section { margin:18px 0; }
+.table { width:100%; border-collapse:collapse; margin-top:8px; }
+.table th, .table td { border:1px solid #e1e1e4; padding:8px 10px; text-align:left; font-size:13px; }
+.table th { background:#f0f0f3; }
+.footer { border-top:1px solid #e6e6e9; margin-top:18px; padding-top:10px; display:flex; justify-content:space-between; color:#555; font-size:12px; }
+.accent-fin { border-left:6px solid #2ECC71; padding-left:10px; }
+.accent-pnl { border-left:6px solid #3498DB; padding-left:10px; }
+.accent-ops { border-left:6px solid #E67E22; padding-left:10px; }
+.accent-seller { border-left:6px solid #9B59B6; padding-left:10px; }
+.quote { background:#fafafa; border-left:4px solid #ddd; padding:10px 12px; font-style:italic; color:#333; margin-top:10px; }
+.small { font-size:12px; color:#666; }
+`</style></head>
+<body>
+<div class="page">
+  <div class="watermark">RAPIDKART — INTERNAL CONFIDENTIAL</div>
+  <div class="ribbon">CONFIDENTIAL</div>
+  <div class="header">
+    <div class="logo">RapidKart</div>
+    <div class="h-title">Operations &amp; Logistics — Fulfillment Metrics (Q3 FY25)</div>
+  </div>
+
+  <div class="section accent-ops">
+    <div class="small">Header: RAPIDKART TECHNOLOGIES PVT. LTD. | Operations Dashboard Snapshot</div>
+    <h2>Fulfillment Snapshot — Regional Metrics</h2>
+    <table class="table">
+      <thead><tr><th>Region</th><th>Orders/Day</th><th>OTD (%)</th><th>Shrinkage (%)</th><th>Avg Delivery (hrs)</th><th>Comment</th></tr></thead>
+      <tbody>
+        <tr><td>NCR</td><td>180,000</td><td>92</td><td>3.1</td><td>2.6</td><td>Stable</td></tr>
+        <tr><td>Pune</td><td>75,000</td><td><strong>89</strong></td><td><strong>4.8</strong></td><td>3.1</td><td>Audit deferred (CycleCountFlag: DEFER)</td></tr>
+        <tr><td>Bengaluru</td><td>95,000</td><td>90</td><td>3.5</td><td>2.9</td><td>High attrition in floor staff</td></tr>
+        <tr><td>Hyderabad</td><td>60,000</td><td>87</td><td><strong>4.2</strong></td><td>3.3</td><td>Inventory mismatch under review</td></tr>
+        <tr><td><strong>National Avg.</strong></td><td>—</td><td><strong>89.4</strong></td><td><strong>3.4</strong></td><td>—</td><td>Below KPI: OTD &lt;90%, Shrinkage &gt;2%</td></tr>
+      </tbody>
+    </table>
+
+    <p class="small"><strong>Supervisor Note (Pune Center):</strong> “HQ asked to delay reconciliation until Q4; system shows full stock though short by ~2,800 units.”</p>
+    <p class="small">Analysis Prompt: Map reported shrinkage to ledger write-offs for correlation.</p>
+  </div>
+
+  <div class="footer"><div>Prepared by Operations — Performance Division | Authorized by COO Neha Bansal</div><div>Page 1 of 1</div></div>
+</div>
+</body>
+</html>

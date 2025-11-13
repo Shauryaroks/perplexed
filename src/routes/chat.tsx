@@ -29,7 +29,7 @@ import { type FormEventHandler, useCallback, useEffect, useState } from 'react';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Card } from '@/components/ui/card';
 import { SelectionPopover } from '@/components/selection_popover';
-import z from 'zod';
+// import z from 'zod';
 import { Input } from '@/components/ui/input';
 
 // ============ CONSTANTS ============
@@ -74,7 +74,7 @@ function Chat() {
   const [inputValue, setInputValue] = useState('');
   const [selectedModel, setSelectedModel] = useState(models[0].id);
   const [isTyping, setIsTyping] = useState(false);
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+//  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
 
   // Scratchpad state
   const [data, setData] = useState<string[]>([]);
