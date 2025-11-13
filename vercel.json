@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "builds": [
+    { "src": "tanstack.config.ts", "use": "@vercel/node" },
+    { "src": "dist/", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/dist/$1"}
+]
+}
