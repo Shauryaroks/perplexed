@@ -37,3 +37,14 @@ export const env = createEnv({
    */
   emptyStringAsUndefined: true,
 })
+import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod";
+
+export const env = createEnv({
+  clientPrefix: "VITE_",
+  client: {
+    VITE_APP_TITLE: z.string().default("Perplexed"),
+    VITE_API_URL: z.string().url().default("http://localhost:8000"), // ADD THIS LINE
+  },
+  runtimeEnv: import.meta.env,
+});

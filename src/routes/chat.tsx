@@ -32,6 +32,9 @@ import { SelectionPopover } from '@/components/selection_popover';
 import z from 'zod';
 import { Input } from '@/components/ui/input';
 
+// ============ CONSTANTS ============
+const API_BASE_URL = 'http://localhost:8000';
+
 type ChatMessage = {
   id: string;
   content: string;
@@ -40,43 +43,21 @@ type ChatMessage = {
   reasoning?: string;
   sources?: Array<{ title: string; url: string }>;
   isStreaming?: boolean;
+  character?: string;
 };
 
+// ============ CHANGE 1: UPDATE MODELS ARRAY ============
+// BEFORE: GPT-4o, Claude, Gemini, Llama
+// AFTER: Karan (CFO), Neha (COO), Arjun (Legal), Raghav (VP)
 const models = [
-  { id: 'gpt-4o', name: 'GPT-4o' },
-  { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet' },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-  { id: 'llama-3.1-70b', name: 'Llama 3.1 70B' },
-];
-
-const sampleResponses = [
-  {
-    content: "I'd be happy to help you with that! React is a powerful JavaScript library for building user interfaces. What specific aspect would you like to explore?",
-    reasoning: "The user is asking about React, which is a broad topic. I should provide a helpful overview while asking for more specific information to give a more targeted response.",
-    sources: [
-      { title: "React Official Documentation", url: "https://react.dev" },
-      { title: "React Developer Tools", url: "https://react.dev/learn" }
-    ]
-  },
-  {
-    content: "Next.js is an excellent framework built on top of React that provides server-side rendering, static site generation, and many other powerful features out of the box.",
-    reasoning: "The user mentioned Next.js, so I should explain its relationship to React and highlight its key benefits for modern web development.",
-    sources: [
-      { title: "Next.js Documentation", url: "https://nextjs.org/docs" },
-      { title: "Vercel Next.js Guide", url: "https://vercel.com/guides/nextjs" }
-    ]
-  },
-  {
-    content: "TypeScript adds static type checking to JavaScript, which helps catch errors early and improves code quality. It's particularly valuable in larger applications.",
-    reasoning: "TypeScript is becoming increasingly important in modern development. I should explain its benefits while keeping the explanation accessible.",
-    sources: [
-      { title: "TypeScript Handbook", url: "https://www.typescriptlang.org/docs" },
-      { title: "TypeScript with React", url: "https://react.dev/learn/typescript" }
-    ]
-  }
+  { id: 'karan', name: 'Karan Mehta', role: 'CFO' },
+  { id: 'neha', name: 'Neha Singh', role: 'COO' },
+  { id: 'arjun', name: 'Arjun Sharma', role: 'Legal Head' },
+  { id: 'raghav', name: 'Raghav Patel', role: 'VP Marketplace' }
 ];
 
 function Chat() {
+  // ============ ORIGINAL STATE ============
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: nanoid(),
@@ -89,47 +70,72 @@ function Chat() {
       ]
     }
   ]);
-  
+
   const [inputValue, setInputValue] = useState('');
   const [selectedModel, setSelectedModel] = useState(models[0].id);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
 
-  const simulateTyping = useCallback((messageId: string, content: string, reasoning?: string, sources?: Array<{ title: string; url: string }>) => {
-    let currentIndex = 0;
-    const typeInterval = setInterval(() => {
-      setMessages(prev => prev.map(msg => {
-        if (msg.id === messageId) {
-          const currentContent = content.slice(0, currentIndex);
-          return {
-            ...msg,
-            content: currentContent,
-            isStreaming: currentIndex < content.length,
-            reasoning: currentIndex >= content.length ? reasoning : undefined,
-            sources: currentIndex >= content.length ? sources : undefined,
-          };
-        }
-        return msg;
-      }));
+  // Scratchpad state
+  const [data, setData] = useState<string[]>([]);
+  const [passPhraseForm, setPassPhrase] = useState("");
 
-      currentIndex += Math.random() > 0.1 ? 2 : 0; // Simulate variable typing speed
-      
-      if (currentIndex >= content.length) {
-        clearInterval(typeInterval);
-        setIsTyping(false);
-        setStreamingMessageId(null);
+  // ============ CHANGE 2: ADD BACKEND STATE ============
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [initState, setInitState] = useState({ geminiKey: '', isInitializing: false });
+  const [error, setError] = useState<string | null>(null);
+
+  // ============ CHANGE 3: ADD INITIALIZATION FUNCTION ============
+  const handleInitialize = useCallback(async (geminiKey: string) => {
+    setInitState(prev => ({ ...prev, isInitializing: true }));
+    setError(null);
+
+    try {
+      // Step 1: Initialize system with Gemini API key
+      const initResponse = await fetch(`${API_BASE_URL}/initialize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gemini_api_key: geminiKey })
+      });
+
+      if (!initResponse.ok) {
+        const errorData = await initResponse.json();
+        throw new Error(errorData.detail || 'Failed to initialize');
       }
-    }, 50);
 
-    return () => clearInterval(typeInterval);
+      console.log('✅ System initialized');
+
+      // Step 2: Create a new session
+      const sessionResponse = await fetch(`${API_BASE_URL}/sessions`, {
+        method: 'POST'
+      });
+
+      if (!sessionResponse.ok) {
+        throw new Error('Failed to create session');
+      }
+
+      const sessionData = await sessionResponse.json();
+      setSessionId(sessionData.session_id);
+      setIsInitialized(true);
+      console.log('✅ Session created:', sessionData.session_id);
+
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Initialization failed: ${message}`);
+      console.error('Initialization error:', err);
+    } finally {
+      setInitState(prev => ({ ...prev, isInitializing: false }));
+    }
   }, []);
 
-  const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback((event) => {
+  // ============ CHANGE 4: UPDATE handleSubmit (REPLACE ENTIRE FUNCTION) ============
+  const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(async (event) => {
     event.preventDefault();
-    
-    if (!inputValue.trim() || isTyping) return;
 
-    // Add user message
+    if (!inputValue.trim() || isTyping || !sessionId || !isInitialized) return;
+
+    // Add user message to UI
     const userMessage: ChatMessage = {
       id: nanoid(),
       content: inputValue.trim(),
@@ -141,45 +147,81 @@ function Chat() {
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI response with delay
-    setTimeout(() => {
-      const responseData = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
-      const assistantMessageId = nanoid();
-      
+    try {
+      // Send message to backend
+      const response = await fetch(`${API_BASE_URL}/chat/${selectedModel}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage.content,
+          session_id: sessionId
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Chat failed');
+      }
+
+      const data = await response.json();
+
+      // Add assistant response to UI
       const assistantMessage: ChatMessage = {
-        id: assistantMessageId,
-        content: '',
+        id: data.id,
+        content: data.content,
         role: 'assistant',
-        timestamp: new Date(),
-        isStreaming: true,
+        timestamp: new Date(data.timestamp),
+        character: selectedModel
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      setStreamingMessageId(assistantMessageId);
-      
-      // Start typing simulation
-      simulateTyping(assistantMessageId, responseData.content, responseData.reasoning, responseData.sources);
-    }, 800);
-  }, [inputValue, isTyping, simulateTyping]);
+      setError(null);
 
-  const handleReset = useCallback(() => {
-    setMessages([
-      {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Chat error: ${message}`);
+
+      // Show error message in chat
+      const errorMessage: ChatMessage = {
         id: nanoid(),
-        content: "Hello! I'm your AI assistant. I can help you with coding questions, explain concepts, and provide guidance on web development topics. What would you like to know?",
+        content: `Error: ${message}`,
         role: 'assistant',
         timestamp: new Date(),
-        sources: [
-          { title: "Getting Started Guide", url: "#" },
-          { title: "API Documentation", url: "#" }
-        ]
-      }
-    ]);
-    setInputValue('');
-    setIsTyping(false);
-    setStreamingMessageId(null);
-  }, []);
+      };
 
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
+
+  }, [inputValue, sessionId, isInitialized, selectedModel]);
+
+  // ============ CHANGE 5: REPLACE handleReset ============
+  const handleReset = useCallback(async () => {
+    if (!sessionId) return;
+
+    try {
+      await fetch(`${API_BASE_URL}/history/${sessionId}/${selectedModel}`, {
+        method: 'DELETE'
+      });
+
+      setMessages([
+        {
+          id: nanoid(),
+          content: "Conversation cleared. What would you like to know?",
+          role: 'assistant',
+          timestamp: new Date(),
+        }
+      ]);
+      setInputValue('');
+      setIsTyping(false);
+      setStreamingMessageId(null);
+    } catch (err) {
+      console.error('Failed to clear history:', err);
+    }
+  }, [sessionId, selectedModel]);
+
+  // ============ SCRATCHPAD FUNCTIONS (UNCHANGED) ============
   function saveScratchPad(d: string[]) {
     localStorage.setItem("scratchpad-length", d.length.toString());
     for (let i = 0; i < d.length; i++) {
@@ -197,13 +239,75 @@ function Chat() {
     return output;
   }
 
-  const [data, setData] = useState<string[]>([]);
+  // ============ CHANGE 6: ADD INITIALIZATION USEEFFECT ============
+  // Load scratchpad on mount
   useEffect(() => {
     setData(loadScratchPad());
   }, []);
 
-  const [passPhraseForm, setPassPhrase] = useState("");
+  // Initialize backend connection on component mount
+  useEffect(() => {
+    const initChat = async () => {
+      const savedKey = localStorage.getItem('gemini_api_key');
 
+      if (savedKey) {
+        // Auto-initialize with saved key
+        await handleInitialize(savedKey);
+      }
+    };
+
+    initChat();
+  }, [handleInitialize]);
+
+  // ============ CHANGE 7: SHOW INITIALIZATION SCREEN IF NOT READY ============
+  if (!isInitialized) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+        <Card className="w-96 p-8">
+          <h2 className="text-2xl font-bold mb-4">Initialize Chat System</h2>
+          <p className="text-sm text-gray-400 mb-4">Enter your Gemini API Key to start</p>
+
+          <Input
+            type="password"
+            placeholder="Enter Gemini API Key"
+            value={initState.geminiKey}
+            onChange={(e) => setInitState(prev => ({ ...prev, geminiKey: e.target.value }))}
+            className="mb-4"
+            disabled={initState.isInitializing}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                if (initState.geminiKey) {
+                  handleInitialize(initState.geminiKey);
+                  localStorage.setItem('gemini_api_key', initState.geminiKey);
+                }
+              }
+            }}
+          />
+
+          {error && (
+            <div className="text-red-500 text-sm mb-4 p-2 bg-red-100 rounded">
+              {error}
+            </div>
+          )}
+
+          <Button
+            onClick={() => {
+              if (initState.geminiKey) {
+                handleInitialize(initState.geminiKey);
+                localStorage.setItem('gemini_api_key', initState.geminiKey);
+              }
+            }}
+            disabled={initState.isInitializing || !initState.geminiKey}
+            className="w-full"
+          >
+            {initState.isInitializing ? 'Initializing...' : 'Start Chat'}
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  // ============ MAIN UI (UNCHANGED EXCEPT FOR ERROR DISPLAY) ============
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden rounded-xl border bg-background shadow-sm">
       {/* Header */}
@@ -222,7 +326,7 @@ function Chat() {
           e.preventDefault();
           alert("Correct passphrase, preceed to next level\n" + passPhraseForm)
         }}>
-          <Input 
+          <Input
             value={passPhraseForm}
             onChange={(e) => setPassPhrase(e.target.value.toLowerCase())}
             placeholder='Enter passphrase to unlock next level'
@@ -232,8 +336,8 @@ function Chat() {
         </form>
         <div className="flex gap-4">
           <ModeToggle />
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
             onClick={handleReset}
             className="h-8 px-2"
@@ -243,6 +347,13 @@ function Chat() {
           </Button>
         </div>
       </div>
+
+      {/* Error Display (NEW) */}
+      {error && (
+        <div className="bg-red-100 border-b border-red-300 text-red-800 px-4 py-2 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* Conversation Area */}
       <Conversation className="flex-1">
@@ -266,9 +377,9 @@ function Chat() {
                       message.content
                     )}
                   </MessageContent>
-                  <MessageAvatar 
-                    src={message.role === 'user' ? 'https://github.com/dovazencot.png' : 'https://github.com/vercel.png'} 
-                    name={message.role === 'user' ? 'User' : 'AI'} 
+                  <MessageAvatar
+                    src={message.role === 'user' ? 'https://github.com/dovazencot.png' : 'https://github.com/vercel.png'}
+                    name={message.role === 'user' ? 'User' : 'AI'}
                   />
                 </Message>
 
@@ -321,17 +432,17 @@ function Chat() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Ask me anything about development, coding, or technology..."
-            disabled={isTyping}
+            disabled={isTyping || !isInitialized}
           />
           <PromptInputToolbar>
             <PromptInputTools>
-              <PromptInputButton disabled={isTyping}>
+              <PromptInputButton disabled={isTyping || !isInitialized}>
                 <PaperclipIcon size={16} />
               </PromptInputButton>
-              <PromptInputModelSelect 
-                value={selectedModel} 
+              <PromptInputModelSelect
+                value={selectedModel}
                 onValueChange={setSelectedModel}
-                disabled={isTyping}
+                disabled={isTyping || !isInitialized}
               >
                 <PromptInputModelSelectTrigger>
                   <PromptInputModelSelectValue />
@@ -345,8 +456,8 @@ function Chat() {
                 </PromptInputModelSelectContent>
               </PromptInputModelSelect>
             </PromptInputTools>
-            <PromptInputSubmit 
-              disabled={!inputValue.trim() || isTyping}
+            <PromptInputSubmit
+              disabled={!inputValue.trim() || isTyping || !isInitialized}
               status={isTyping ? 'streaming' : 'ready'}
             />
           </PromptInputToolbar>
