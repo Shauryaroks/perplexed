@@ -3,10 +3,11 @@ uvicorn
 python-dotenv
 pydantic
 pydantic-settings
-pinecone-client
+pinecone
 google-generativeai
 sentence-transformers
 numpy
 scikit-learn
 python-multipart
 requests
+
