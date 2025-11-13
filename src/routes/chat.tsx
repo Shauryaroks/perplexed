@@ -1,3 +1,4 @@
+// src/routes/chat.tsx
 import { Conversation, ConversationContent, ConversationScrollButton } from '@/components/ui/shadcn-io/ai/conversation';
 import { createRoute } from '@tanstack/react-router'
 import type { RootRoute } from '@tanstack/react-router'
@@ -215,7 +216,7 @@ function Chat() {
       ]);
       setInputValue('');
       setIsTyping(false);
-      setStreamingMessageId(null);
+      // removed setStreamingMessageId(null) because streaming state is commented out
     } catch (err) {
       console.error('Failed to clear history:', err);
     }
@@ -411,7 +412,7 @@ function Chat() {
           </ConversationContent>
           <Card className="sm:w-1/2 flex flex-col items-center p-4 border-none bg-secondary rounded-none w-full">
             <div className="text-5xl">Scratch Pad</div>
-            {data.map((item, i) => <div className="flex flex-col gap-4 bg-background p-4 w-full">
+            {data.map((item, i) => <div key={i} className="flex flex-col gap-4 bg-background p-4 w-full">
               <div>{item}</div>
               <div className="flex justify-between"><div></div><button onClick={() => {
                 const n = data.slice();
@@ -467,7 +468,8 @@ function Chat() {
   );
 }
 
-export default (parentRoute: RootRoute) =>
+// broaden the generic to avoid cross-file RootRoute generic mismatches
+export default (parentRoute: RootRoute<any>) =>
   createRoute({
     path: '/chat',
     component: Chat,
