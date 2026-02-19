@@ -174,7 +174,7 @@ async def delete_session(session_id: str):
 
 @app.post("/chat/karan")
 async def chat_karan(request: ChatRequest) -> ChatResponse:
-    """Chat with Karan Mehta (CFO)"""
+    """Chat with Alex, Founder & CEO of FocusGuard"""
     if not rag_system:
         raise HTTPException(status_code=503, detail="RAG system not initialized")
     
